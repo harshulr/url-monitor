@@ -96,18 +96,59 @@ app.MapGet("/api/urls/{id:guid}/history", async (Guid id, AppDbContext db) =>
         .Where(r => r.MonitoredUrlId == id)
         .OrderByDescending(r => r.Timestamp)
         .Take(100)
-        .Select(r => new HistoryItemViewModel(
-            r.Id, r.Timestamp, r.StatusCode, r.ResponseTimeMs, r.IsSuccess, r.ErrorMessage))
+        .Join(db.SchedulerJobs,
+            r => r.JobId,
+            j => j.Id,
+            (r, j) => new HistoryItemViewModel(
+                r.Id, r.Timestamp, r.StatusCode, r.ResponseTimeMs, r.IsSuccess, r.ErrorMessage, j.TriggerType))
         .ToListAsync();
 
     return Results.Ok(history);
 });
 
+// Past runs (newest first) with pass/fail counts.
+app.MapGet("/api/jobs", async (AppDbContext db) =>
+{
+    var jobs = await db.SchedulerJobs
+        .OrderByDescending(j => j.ExecutedAt)
+        .Take(100)
+        .Select(j => new JobSummaryViewModel(
+            j.Id,
+            j.ExecutedAt,
+            j.TriggerType,
+            j.Results.Count(),
+            j.Results.Count(r => r.IsSuccess),
+            j.Results.Count(r => !r.IsSuccess)))
+        .ToListAsync();
+
+    return Results.Ok(jobs);
+});
+
+// Every endpoint result captured in a single run.
+app.MapGet("/api/jobs/{id:guid}", async (Guid id, AppDbContext db) =>
+{
+    if (!await db.SchedulerJobs.AnyAsync(j => j.Id == id))
+        return Results.NotFound();
+
+    var results = await db.HealthCheckResults
+        .Where(r => r.JobId == id)
+        .Join(db.MonitoredUrls,
+            r => r.MonitoredUrlId,
+            u => u.Id,
+            (r, u) => new { r, u })
+        .OrderBy(x => x.u.Name)
+        .Select(x => new JobResultViewModel(
+            x.r.Id, x.u.Name, x.u.Url, x.r.StatusCode, x.r.ResponseTimeMs, x.r.IsSuccess, x.r.ErrorMessage))
+        .ToListAsync();
+
+    return Results.Ok(results);
+});
+
 // Manual trigger: queue a check batch, return 202 immediately.
 app.MapPost("/api/urls/sync", async (HealthCheckProducer producer) =>
 {
-    var queued = await producer.QueueActiveChecksAsync();
-    return Results.Accepted(value: new { message = "Health sync queued.", queued });
+    var jobId = await producer.QueueActiveChecksAsync(TriggerTypes.Manual);
+    return Results.Accepted(value: new { message = "Health sync queued.", jobId });
 });
 
 app.MapGet("/", () => "URL Health Monitor API online.");

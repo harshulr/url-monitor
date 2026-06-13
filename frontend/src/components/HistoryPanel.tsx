@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Badge, Center, Drawer, Loader, Text } from '@mantine/core';
 import { getHistory, type HistoryItem, type UrlStatus } from '../api/client';
 import { DataTable, type Column } from './DataTable';
+import { TriggerBadge } from './TriggerBadge';
 
 const columns: Column<HistoryItem>[] = [
   { header: 'Time', render: (h) => new Date(h.timestamp).toLocaleString() },
@@ -14,6 +15,7 @@ const columns: Column<HistoryItem>[] = [
     ),
   },
   { header: 'Latency', render: (h) => `${h.responseTimeMs} ms` },
+  { header: 'Trigger', render: (h) => <TriggerBadge trigger={h.triggerType} /> },
 ];
 
 /// Sliding panel showing the chronological check log for one endpoint.

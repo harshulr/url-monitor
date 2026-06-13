@@ -19,6 +19,26 @@ export interface HistoryItem {
   responseTimeMs: number;
   isSuccess: boolean;
   errorMessage: string | null;
+  triggerType: string;
+}
+
+export interface JobSummary {
+  id: string;
+  executedAt: string;
+  triggerType: string;
+  totalChecks: number;
+  successCount: number;
+  failureCount: number;
+}
+
+export interface JobResult {
+  resultId: string;
+  name: string;
+  url: string;
+  statusCode: number | null;
+  responseTimeMs: number;
+  isSuccess: boolean;
+  errorMessage: string | null;
 }
 
 async function getJson<T>(path: string): Promise<T> {
@@ -33,6 +53,14 @@ export function getUrls(): Promise<UrlStatus[]> {
 
 export function getHistory(id: string): Promise<HistoryItem[]> {
   return getJson<HistoryItem[]>(`/api/urls/${id}/history`);
+}
+
+export function getJobs(): Promise<JobSummary[]> {
+  return getJson<JobSummary[]>('/api/jobs');
+}
+
+export function getJobResults(id: string): Promise<JobResult[]> {
+  return getJson<JobResult[]>(`/api/jobs/${id}`);
 }
 
 export async function triggerSync(): Promise<void> {

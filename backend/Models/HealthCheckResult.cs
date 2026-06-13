@@ -5,6 +5,9 @@ public class HealthCheckResult
 {
     public Guid Id { get; set; }
 
+    /// <summary>The run (job) this result belongs to — the trace anchor for a batch of checks.</summary>
+    public Guid JobId { get; set; }
+
     public Guid MonitoredUrlId { get; set; }
 
     public DateTime Timestamp { get; set; }
@@ -17,6 +20,8 @@ public class HealthCheckResult
     public bool IsSuccess { get; set; }
 
     public string? ErrorMessage { get; set; }
+
+    public SchedulerJob? Job { get; set; }
 
     public MonitoredUrl? MonitoredUrl { get; set; }
 }

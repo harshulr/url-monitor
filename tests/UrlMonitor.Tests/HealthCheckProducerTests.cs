@@ -9,7 +9,7 @@ using Xunit;
 
 namespace UrlMonitor.Tests;
 
-/// <summary>Verifies the producer queues a task for each active URL, against real in-memory SQLite.</summary>
+/// <summary>Verifies the producer records a run and queues a task per active URL, against real in-memory SQLite.</summary>
 public class HealthCheckProducerTests : IDisposable
 {
     private readonly SqliteConnection _connection;
@@ -48,7 +48,7 @@ public class HealthCheckProducerTests : IDisposable
     }
 
     [Fact]
-    public async Task Queues_one_task_per_active_url_and_skips_inactive()
+    public async Task Records_job_and_queues_one_task_per_active_url()
     {
         AddUrl("active1", true);
         AddUrl("active2", true);
@@ -58,14 +58,16 @@ public class HealthCheckProducerTests : IDisposable
         var channel = Channel.CreateUnbounded<HealthCheckTask>();
         var producer = new HealthCheckProducer(_db, channel, NullLogger<HealthCheckProducer>.Instance);
 
-        var queued = await producer.QueueActiveChecksAsync();
+        var jobId = await producer.QueueActiveChecksAsync(TriggerTypes.Scheduled);
 
-        Assert.Equal(2, queued);
+        Assert.NotNull(jobId);
+        var job = Assert.Single(_db.SchedulerJobs);
+        Assert.Equal(TriggerTypes.Scheduled, job.TriggerType);
         Assert.Equal(2, Drain(channel));
     }
 
     [Fact]
-    public async Task Queues_nothing_when_no_active_urls()
+    public async Task Returns_null_and_queues_nothing_when_no_active_urls()
     {
         AddUrl("inactive", false);
         await _db.SaveChangesAsync();
@@ -73,9 +75,10 @@ public class HealthCheckProducerTests : IDisposable
         var channel = Channel.CreateUnbounded<HealthCheckTask>();
         var producer = new HealthCheckProducer(_db, channel, NullLogger<HealthCheckProducer>.Instance);
 
-        var queued = await producer.QueueActiveChecksAsync();
+        var jobId = await producer.QueueActiveChecksAsync(TriggerTypes.Manual);
 
-        Assert.Equal(0, queued);
+        Assert.Null(jobId);
+        Assert.Empty(_db.SchedulerJobs);
         Assert.Equal(0, Drain(channel));
     }
 }

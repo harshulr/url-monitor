@@ -1,3 +1,5 @@
+using UrlMonitor.Api.Models;
+
 namespace UrlMonitor.Api.Services;
 
 /// <summary>Queues a check batch every 60s via PeriodicTimer (and once immediately on startup).</summary>
@@ -25,7 +27,7 @@ public class SchedulerWorker : BackgroundService
             {
                 using var scope = _scopeFactory.CreateScope();
                 var producer = scope.ServiceProvider.GetRequiredService<HealthCheckProducer>();
-                await producer.QueueActiveChecksAsync(stoppingToken);
+                await producer.QueueActiveChecksAsync(TriggerTypes.Scheduled, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

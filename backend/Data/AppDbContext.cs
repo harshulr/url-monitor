@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<MonitoredUrl> MonitoredUrls => Set<MonitoredUrl>();
+    public DbSet<SchedulerJob> SchedulerJobs => Set<SchedulerJob>();
     public DbSet<HealthCheckResult> HealthCheckResults => Set<HealthCheckResult>();
 
     // SQLite drops DateTimeKind; we store UTC, so re-stamp Kind=Utc on read so JSON emits a 'Z'.
@@ -42,6 +43,13 @@ public class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).IsRequired();
         });
 
+        modelBuilder.Entity<SchedulerJob>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ExecutedAt).IsRequired();
+            entity.Property(e => e.TriggerType).IsRequired();
+        });
+
         modelBuilder.Entity<HealthCheckResult>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -54,8 +62,16 @@ public class AppDbContext : DbContext
                   .HasForeignKey(e => e.MonitoredUrlId)
                   .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(e => e.Job)
+                  .WithMany(j => j.Results)
+                  .HasForeignKey(e => e.JobId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
             entity.HasIndex(e => new { e.MonitoredUrlId, e.Timestamp })
                   .HasDatabaseName("IX_HealthCheckResult_MonitoredUrlId_Timestamp");
+
+            entity.HasIndex(e => e.JobId)
+                  .HasDatabaseName("IX_HealthCheckResult_JobId");
         });
     }
 }

@@ -15,7 +15,7 @@ interface DataTableProps<T> {
   striped?: boolean;
 }
 
-/// Generic, column-driven table. Reused by EndpointsTable and HistoryDrawer.
+/// Generic, column-driven table. Reused by EndpointsTable, HistoryPanel, and JobsView.
 export function DataTable<T>({ columns, rows, rowKey, onRowClick, minWidth, striped }: DataTableProps<T>) {
   const body = rows.map((row) => (
     <Table.Tr

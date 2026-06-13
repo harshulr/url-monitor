@@ -13,7 +13,7 @@ public class HealthCheckExecutorTests
         new(new StubHttpClientFactory(handler));
 
     private static HealthCheckTask SampleTask() =>
-        new(Guid.NewGuid(), "https://endpoint.test");
+        new(Guid.NewGuid(), Guid.NewGuid(), "https://endpoint.test");
 
     [Fact]
     public async Task Returns_success_for_2xx()

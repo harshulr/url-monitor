@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AppShell, Button, Container, Group, Title } from '@mantine/core';
+import { AppShell, Button, Container, Group, Tabs, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconActivityHeartbeat, IconRefresh } from '@tabler/icons-react';
+import { IconActivityHeartbeat, IconRefresh, IconLayoutDashboard, IconHistory } from '@tabler/icons-react';
 
 import { getUrls, triggerSync, type UrlStatus } from './api/client';
 import { Dashboard } from './components/Dashboard';
+import { JobsView } from './components/JobsView';
 
 const POLL_INTERVAL_MS = 15_000;
 
@@ -68,7 +69,24 @@ export default function App() {
 
       <AppShell.Main>
         <Container size="lg">
-          <Dashboard urls={urls} loading={loading} error={error} />
+          <Tabs defaultValue="dashboard" keepMounted={false}>
+            <Tabs.List mb="md">
+              <Tabs.Tab value="dashboard" leftSection={<IconLayoutDashboard size={16} />}>
+                Dashboard
+              </Tabs.Tab>
+              <Tabs.Tab value="jobs" leftSection={<IconHistory size={16} />}>
+                Job History
+              </Tabs.Tab>
+            </Tabs.List>
+
+            <Tabs.Panel value="dashboard">
+              <Dashboard urls={urls} loading={loading} error={error} />
+            </Tabs.Panel>
+
+            <Tabs.Panel value="jobs">
+              <JobsView />
+            </Tabs.Panel>
+          </Tabs>
         </Container>
       </AppShell.Main>
     </AppShell>

@@ -5,7 +5,7 @@ using UrlMonitor.Api.Models;
 
 namespace UrlMonitor.Api.Services;
 
-/// <summary>Queues a check task for every active URL. Shared by the scheduler and the manual sync endpoint.</summary>
+/// <summary>Records a run (SchedulerJob) and queues a check task per active URL. Shared by scheduler + manual sync.</summary>
 public class HealthCheckProducer
 {
     private readonly AppDbContext _db;
@@ -19,20 +19,33 @@ public class HealthCheckProducer
         _logger = logger;
     }
 
-    /// <summary>Enqueues one task per active URL. Returns how many were queued.</summary>
-    public async Task<int> QueueActiveChecksAsync(CancellationToken ct = default)
+    /// <summary>Creates a job of the given trigger type and enqueues one task per active URL. Returns the job id, or null if none active.</summary>
+    public async Task<Guid?> QueueActiveChecksAsync(string triggerType, CancellationToken ct = default)
     {
         var active = await _db.MonitoredUrls
             .Where(u => u.IsActive)
             .Select(u => new { u.Id, u.Url })
             .ToListAsync(ct);
 
+        if (active.Count == 0)
+        {
+            _logger.LogInformation("No active URLs to queue for {Trigger} run.", triggerType);
+            return null;
+        }
+
+        var job = new SchedulerJob
+        {
+            Id = Guid.NewGuid(),
+            ExecutedAt = DateTime.UtcNow,
+            TriggerType = triggerType,
+        };
+        _db.SchedulerJobs.Add(job);
+        await _db.SaveChangesAsync(ct);
+
         foreach (var u in active)
-            await _channel.Writer.WriteAsync(new HealthCheckTask(u.Id, u.Url), ct);
+            await _channel.Writer.WriteAsync(new HealthCheckTask(job.Id, u.Id, u.Url), ct);
 
-        if (active.Count > 0)
-            _logger.LogInformation("Queued {Count} check(s).", active.Count);
-
-        return active.Count;
+        _logger.LogInformation("Queued {Trigger} job {JobId} with {Count} check(s).", triggerType, job.Id, active.Count);
+        return job.Id;
     }
 }

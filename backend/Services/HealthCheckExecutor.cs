@@ -27,6 +27,7 @@ public class HealthCheckExecutor
         var result = new HealthCheckResult
         {
             Id = Guid.NewGuid(),
+            JobId = task.JobId,
             MonitoredUrlId = task.UrlId,
             Timestamp = DateTime.UtcNow,
         };
