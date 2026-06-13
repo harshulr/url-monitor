@@ -1,0 +1,17 @@
+## .NET build artifacts
+bin/
+obj/
+
+## SQLite database + WAL sidecar files (runtime state, not source)
+*.db
+*.db-wal
+*.db-shm
+
+## Node / frontend
+node_modules/
+dist/
+
+## User-specific / IDE
+*.user
+.vs/
+.idea/
