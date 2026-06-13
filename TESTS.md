@@ -24,6 +24,12 @@ Kept intentionally small — these three cover the green / red / unreachable sta
 sees. Finer cases (timeout vs. shutdown cancellation) are handled in code but not separately tested
 to keep the suite lean.
 
+### Layer 3 — `HealthCheckProducer` (integration, `HealthCheckProducerTests`)
+Runs against real in-memory SQLite, so it exercises the actual query:
+
+- Queues one task per **active** URL and skips inactive ones.
+- Queues nothing when there are no active URLs.
+
 ## What I deliberately skip (so far)
 
 - **The consumer loop / hosted service wiring.** `ChannelConsumerWorker` is a thin loop over the
